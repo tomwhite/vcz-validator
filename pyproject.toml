@@ -1,0 +1,79 @@
+[build-system]
+requires = [
+    "setuptools>=45",
+    "wheel",
+    "numpy>=2",
+    "setuptools_scm"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vcz-validator"
+description = "Validator for the VCF Zarr spec"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+  {name = "sgkit Developers", email = "project@sgkit.dev"},
+]
+dependencies = [
+  "click>=8.2.0",
+  "numpy>=1.23.5,<2.4",
+  "zarr>=3.1",
+]
+requires-python = ">=3.11"
+classifiers = [
+  "Development Status :: 3 - Aplha",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: POSIX",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: MacOS",
+  "Operating System :: MacOS :: MacOS X",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering"
+]
+dynamic = ["version"]
+
+[project.urls]
+repository = "https://github.com/sgkit-dev/vcz-validator"
+
+[project.scripts]
+vcz-validate = "vcz_validator.cli:validate"
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+]
+
+[tool.setuptools]
+packages = ["vcz_validator"]
+
+[tool.setuptools_scm]
+write_to = "vcz_validator/_version.py"
+
+[tool.ruff]
+# Assume Python 3.11
+target-version = "py311"
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "W", "I", "N", "UP", "A", "PT"]
+#Allow uppercase names for e.g. call_AD
+#Don't add strict=False to zips (B905)
+ignore = ["N806", "N802", "N803", "A001", "A002", "B905", "RUF", "UP038"]
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+known-third-party = [
+  "numpy",
+  "pytest",
+  "zarr"
+]
