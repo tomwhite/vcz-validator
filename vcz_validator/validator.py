@@ -186,6 +186,19 @@ class CheckArrayDtypeKind(ZarrCheck):
             )
 
 
+@dataclass
+class CheckStringFieldHasVLenUTF8Filter(ZarrCheck):
+    name: str
+
+    def check(self, root):
+        arr = root[self.name]
+        has_vlen_utf8 = any(f.codec_id == "vlen-utf8" for f in arr.filters)
+        if not has_vlen_utf8:
+            return Failure(
+                f"String field '{self.name}' must have a vlen-utf8 filter",
+            )
+
+
 def validate(path):
     failures = []
 
@@ -222,8 +235,18 @@ def validate(path):
         CheckArrayDimensionNames("sample_id", ["samples"]),
         CheckArrayDtypeKind("variant_contig", "i"),
         CheckArrayDtypeKind("variant_position", "i"),
+        CheckArrayDtypeKind("variant_id", "T"),
+        CheckArrayDtypeKind("variant_allele", "T"),
         CheckArrayDtypeKind("variant_quality", "f"),
         CheckArrayDtypeKind("variant_filter", "b"),
+        CheckArrayDtypeKind("contig_id", "T"),
+        CheckArrayDtypeKind("filter_id", "T"),
+        CheckArrayDtypeKind("sample_id", "T"),
+        CheckStringFieldHasVLenUTF8Filter("variant_id"),
+        CheckStringFieldHasVLenUTF8Filter("variant_allele"),
+        CheckStringFieldHasVLenUTF8Filter("contig_id"),
+        CheckStringFieldHasVLenUTF8Filter("filter_id"),
+        CheckStringFieldHasVLenUTF8Filter("sample_id"),
     ]
 
     for check in checks:
