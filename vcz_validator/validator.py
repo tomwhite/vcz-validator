@@ -43,7 +43,7 @@ class Failure:
 class CheckPathExists(PathCheck):
     def check(self, path):
         if not path.exists():
-            return Failure(f"Path '{path}' does not exist", stop=True)
+            yield Failure(f"Path '{path}' does not exist", stop=True)
 
 
 class CheckPathIsZarrGroup(PathCheck):
@@ -51,20 +51,20 @@ class CheckPathIsZarrGroup(PathCheck):
         try:
             zarr.open(path, mode="r")
         except GroupNotFoundError:
-            return Failure(f"Path '{path}' is not a Zarr group", stop=True)
+            yield Failure(f"Path '{path}' is not a Zarr group", stop=True)
 
 
 class CheckZarrFormatIsV2(ZarrCheck):
     def check(self, root):
         zarr_format = root.metadata.zarr_format
         if zarr_format != 2:
-            return Failure(f"Zarr format must be 2, but was {zarr_format}", stop=True)
+            yield Failure(f"Zarr format must be 2, but was {zarr_format}", stop=True)
 
 
 class CheckVcfZarrVersionGroupAttributeIsPresent(ZarrCheck):
     def check(self, root):
         if "vcf_zarr_version" not in root.attrs:
-            return Failure(
+            yield Failure(
                 "'vcf_zarr_version' group attribute must be present", stop=True
             )
 
@@ -73,7 +73,7 @@ class CheckVcfZarrVersionIsSupported(ZarrCheck):
     def check(self, root):
         vcf_zarr_version = root.attrs["vcf_zarr_version"]
         if vcf_zarr_version != "0.4":
-            return Failure(
+            yield Failure(
                 f"'vcf_zarr_version' must be '0.4', but was '{vcf_zarr_version}'",
                 stop=True,
             )
@@ -88,7 +88,7 @@ class CheckAllArraysHaveDimensionNames(ZarrCheck):
             if dims is None:
                 missing_array_names.append(name)
         if len(missing_array_names) > 0:
-            return Failure(
+            yield Failure(
                 "Arrays must have dimension names, but they were missing for: "
                 f"{",".join(missing_array_names)}",
                 stop=True,
@@ -109,7 +109,7 @@ class CheckDimensionNamesLenMatchesArrayDimensionsLen(ZarrCheck):
             if len(dims) != arr.ndim:
                 mismatched_names.append(name)
         if len(mismatched_names) > 0:
-            return Failure(
+            yield Failure(
                 "Number of dimension names must match array ndim, "
                 f"but they were mismatched for: {','.join(mismatched_names)}.\n"
                 "The dimension name counts and ndims were:\n"
@@ -135,7 +135,7 @@ class CheckDimensionNamesHaveConsistentSizes(ZarrCheck):
                 else:
                     dimension_name_to_size[dim] = size
         if len(inconsistent_dimension_names) > 0:
-            return Failure(
+            yield Failure(
                 "Dimension names must have consistent sizes, but they were "
                 f"inconsistent for: {",".join(inconsistent_dimension_names)}.\n"
                 "The array dimensions and sizes were:\n"
@@ -151,52 +151,40 @@ class CheckRequiredFieldsArePresent(ZarrCheck):
         )
         if len(missing_required_field_names) > 0:
             missing_required_field_names = sorted(missing_required_field_names)
-            return Failure(
+            yield Failure(
                 "Missing required fields: " f"{",".join(missing_required_field_names)}",
                 stop=True,
             )
 
 
 @dataclass
-class CheckArrayDimensionNames(ZarrCheck):
+class CheckArraySpec(ZarrCheck):
     name: str
-    expected_dimension_names: list[str]
+    dimension_names: list[str]
+    dtype_kind: str
 
     def check(self, root):
         arr = root[self.name]
+
         dims = arr.attrs["_ARRAY_DIMENSIONS"]
-        if dims != self.expected_dimension_names:
-            return Failure(
+        if dims != self.dimension_names:
+            yield Failure(
                 f"Incorrect dimension names for '{self.name}': "
-                f"expected {self.expected_dimension_names} but was {dims}",
+                f"expected {self.dimension_names} but was {dims}",
             )
 
-
-@dataclass
-class CheckArrayDtypeKind(ZarrCheck):
-    name: str
-    expected_dtype_kind: str
-
-    def check(self, root):
-        arr = root[self.name]
-        if arr.dtype.kind != self.expected_dtype_kind:
-            return Failure(
+        if arr.dtype.kind != self.dtype_kind:
+            yield Failure(
                 f"Incorrect dtype kind for '{self.name}': "
-                f"expected '{self.expected_dtype_kind}' but was '{arr.dtype.kind}'",
+                f"expected '{self.dtype_kind}' but was '{arr.dtype.kind}'",
             )
 
-
-@dataclass
-class CheckStringFieldHasVLenUTF8Filter(ZarrCheck):
-    name: str
-
-    def check(self, root):
-        arr = root[self.name]
-        has_vlen_utf8 = any(f.codec_id == "vlen-utf8" for f in arr.filters)
-        if not has_vlen_utf8:
-            return Failure(
-                f"String field '{self.name}' must have a vlen-utf8 filter",
-            )
+        if self.dtype_kind == "T":
+            has_vlen_utf8 = any(f.codec_id == "vlen-utf8" for f in arr.filters)
+            if not has_vlen_utf8:
+                yield Failure(
+                    f"String field '{self.name}' must have a vlen-utf8 filter",
+                )
 
 
 def validate(path):
@@ -208,10 +196,9 @@ def validate(path):
     ]
 
     for check in path_checks:
-        result = check.check(path)
-        if isinstance(result, Failure):
-            failures.append(result)
-            if result.stop:
+        for failure in check.check(path):
+            failures.append(failure)
+            if failure.stop:
                 return failures
 
     root = zarr.open(path, mode="r")
@@ -224,36 +211,21 @@ def validate(path):
         CheckDimensionNamesLenMatchesArrayDimensionsLen(),
         CheckDimensionNamesHaveConsistentSizes(),
         CheckRequiredFieldsArePresent(),
-        CheckArrayDimensionNames("variant_contig", ["variants"]),
-        CheckArrayDimensionNames("variant_position", ["variants"]),
-        CheckArrayDimensionNames("variant_id", ["variants"]),
-        CheckArrayDimensionNames("variant_allele", ["variants", "alleles"]),
-        CheckArrayDimensionNames("variant_quality", ["variants"]),
-        CheckArrayDimensionNames("variant_filter", ["variants", "filters"]),
-        CheckArrayDimensionNames("contig_id", ["contigs"]),
-        CheckArrayDimensionNames("filter_id", ["filters"]),
-        CheckArrayDimensionNames("sample_id", ["samples"]),
-        CheckArrayDtypeKind("variant_contig", "i"),
-        CheckArrayDtypeKind("variant_position", "i"),
-        CheckArrayDtypeKind("variant_id", "T"),
-        CheckArrayDtypeKind("variant_allele", "T"),
-        CheckArrayDtypeKind("variant_quality", "f"),
-        CheckArrayDtypeKind("variant_filter", "b"),
-        CheckArrayDtypeKind("contig_id", "T"),
-        CheckArrayDtypeKind("filter_id", "T"),
-        CheckArrayDtypeKind("sample_id", "T"),
-        CheckStringFieldHasVLenUTF8Filter("variant_id"),
-        CheckStringFieldHasVLenUTF8Filter("variant_allele"),
-        CheckStringFieldHasVLenUTF8Filter("contig_id"),
-        CheckStringFieldHasVLenUTF8Filter("filter_id"),
-        CheckStringFieldHasVLenUTF8Filter("sample_id"),
+        CheckArraySpec("variant_contig", ["variants"], "i"),
+        CheckArraySpec("variant_position", ["variants"], "i"),
+        CheckArraySpec("variant_id", ["variants"], "T"),
+        CheckArraySpec("variant_allele", ["variants", "alleles"], "T"),
+        CheckArraySpec("variant_quality", ["variants"], "f"),
+        CheckArraySpec("variant_filter", ["variants", "filters"], "b"),
+        CheckArraySpec("contig_id", ["contigs"], "T"),
+        CheckArraySpec("filter_id", ["filters"], "T"),
+        CheckArraySpec("sample_id", ["samples"], "T"),
     ]
 
     for check in checks:
-        result = check.check(root)
-        if isinstance(result, Failure):
-            failures.append(result)
-            if result.stop:
+        for failure in check.check(root):
+            failures.append(failure)
+            if failure.stop:
                 return failures
 
     return failures
