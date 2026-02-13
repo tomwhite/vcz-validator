@@ -1,5 +1,6 @@
 import pprint as pp
 from dataclasses import dataclass
+from pathlib import Path
 
 import zarr
 from zarr.errors import GroupNotFoundError
@@ -188,6 +189,7 @@ class CheckArraySpec(ZarrCheck):
 
 
 def validate(path):
+    path = Path(path)
     failures = []
 
     path_checks = [

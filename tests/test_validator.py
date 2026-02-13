@@ -205,6 +205,7 @@ def test_failure__string_field_missing_vlen_utf8_filter(example_vcz_path):
     )
 
 
-def test_success(example_vcz_path):
-    failures = validate(example_vcz_path)
+@pytest.mark.parametrize("path_type", [Path, str])
+def test_success(example_vcz_path, path_type):
+    failures = validate(path_type(example_vcz_path))
     assert len(failures) == 0
