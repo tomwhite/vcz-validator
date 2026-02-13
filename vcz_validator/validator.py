@@ -35,11 +35,6 @@ class ZarrCheck(Check):
 
 
 @dataclass
-class Success:
-    pass
-
-
-@dataclass
 class Failure:
     message: str
     stop: bool = False
@@ -49,7 +44,6 @@ class CheckPathExists(PathCheck):
     def check(self, path):
         if not path.exists():
             return Failure(f"Path '{path}' does not exist", stop=True)
-        return Success()
 
 
 class CheckPathIsZarrGroup(PathCheck):
@@ -58,7 +52,6 @@ class CheckPathIsZarrGroup(PathCheck):
             zarr.open(path, mode="r")
         except GroupNotFoundError:
             return Failure(f"Path '{path}' is not a Zarr group", stop=True)
-        return Success()
 
 
 class CheckZarrFormatIsV2(ZarrCheck):
@@ -66,7 +59,6 @@ class CheckZarrFormatIsV2(ZarrCheck):
         zarr_format = root.metadata.zarr_format
         if zarr_format != 2:
             return Failure(f"Zarr format must be 2, but was {zarr_format}", stop=True)
-        return Success()
 
 
 class CheckVcfZarrVersionGroupAttributeIsPresent(ZarrCheck):
@@ -75,7 +67,6 @@ class CheckVcfZarrVersionGroupAttributeIsPresent(ZarrCheck):
             return Failure(
                 "'vcf_zarr_version' group attribute must be present", stop=True
             )
-        return Success()
 
 
 class CheckVcfZarrVersionIsSupported(ZarrCheck):
@@ -86,7 +77,6 @@ class CheckVcfZarrVersionIsSupported(ZarrCheck):
                 f"'vcf_zarr_version' must be '0.4', but was '{vcf_zarr_version}'",
                 stop=True,
             )
-        return Success()
 
 
 class CheckAllArraysHaveDimensionNames(ZarrCheck):
@@ -103,7 +93,6 @@ class CheckAllArraysHaveDimensionNames(ZarrCheck):
                 f"{",".join(missing_array_names)}",
                 stop=True,
             )
-        return Success()
 
 
 # TODO: check dimension names are same length as ndim
@@ -133,7 +122,6 @@ class CheckDimensionNamesHaveConsistentSizes(ZarrCheck):
                 f"{pp.pformat(all_array_dimensions)}",
                 stop=True,
             )
-        return Success()
 
 
 class CheckRequiredFieldsArePresent(ZarrCheck):
@@ -147,7 +135,6 @@ class CheckRequiredFieldsArePresent(ZarrCheck):
                 "Missing required fields: " f"{",".join(missing_required_field_names)}",
                 stop=True,
             )
-        return Success()
 
 
 @dataclass
@@ -163,7 +150,6 @@ class CheckArrayDimensionNames(ZarrCheck):
                 f"Incorrect dimension names for '{self.name}': "
                 f"expected {self.expected_dimension_names} but was {dims}",
             )
-        return Success()
 
 
 def validate(path):
