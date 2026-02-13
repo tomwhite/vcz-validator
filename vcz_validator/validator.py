@@ -2,6 +2,7 @@ import pprint as pp
 from dataclasses import dataclass
 
 import zarr
+from zarr.errors import GroupNotFoundError
 
 REQUIRED_VARIABLE_NAMES = [
     "variant_contig",
@@ -152,8 +153,12 @@ class CheckArrayDimensionNames(ZarrCheck):
 def validate(path):
     failures = []
 
-    # TODO: turn into a more structured failure
-    root = zarr.open(path, mode="r")
+    try:
+        root = zarr.open(path, mode="r")
+    except GroupNotFoundError:
+        return [Failure(f"Path '{path}' is not a Zarr group", stop=True)]
+    except FileNotFoundError:
+        return [Failure(f"Path '{path}' does not exist", stop=True)]
 
     checks = [
         CheckZarrFormatIsV2(),

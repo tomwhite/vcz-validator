@@ -3,7 +3,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 import zarr
-from zarr.errors import GroupNotFoundError
 
 from vcz_validator.validator import validate
 
@@ -49,16 +48,19 @@ def expect_validate_failure(path, expected_message):
 
 def test_failure__path_does_not_exist(tmp_path):
     non_existent_path = Path(tmp_path) / "non-existent"
-
-    with pytest.raises(FileNotFoundError):
-        validate(non_existent_path)
+    expect_validate_failure(
+        non_existent_path,
+        f"Path '{non_existent_path}' does not exist",
+    )
 
 
 def test_failure__path_is_not_zarr_group(tmp_path):
     path = Path(tmp_path) / "path"
     path.mkdir()
-    with pytest.raises(GroupNotFoundError):
-        validate(path)
+    expect_validate_failure(
+        path,
+        f"Path '{path}' is not a Zarr group",
+    )
 
 
 def test_failure__path_is_not_zarr_group_v3(tmp_path):
