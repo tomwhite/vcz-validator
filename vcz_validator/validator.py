@@ -45,6 +45,22 @@ class Failure:
     stop: bool = False
 
 
+class CheckPathExists(PathCheck):
+    def check(self, path):
+        if not path.exists():
+            return Failure(f"Path '{path}' does not exist", stop=True)
+        return Success()
+
+
+class CheckPathIsZarrGroup(PathCheck):
+    def check(self, path):
+        try:
+            zarr.open(path, mode="r")
+        except GroupNotFoundError:
+            return Failure(f"Path '{path}' is not a Zarr group", stop=True)
+        return Success()
+
+
 class CheckZarrFormatIsV2(ZarrCheck):
     def check(self, root):
         zarr_format = root.metadata.zarr_format
@@ -153,12 +169,19 @@ class CheckArrayDimensionNames(ZarrCheck):
 def validate(path):
     failures = []
 
-    try:
-        root = zarr.open(path, mode="r")
-    except GroupNotFoundError:
-        return [Failure(f"Path '{path}' is not a Zarr group", stop=True)]
-    except FileNotFoundError:
-        return [Failure(f"Path '{path}' does not exist", stop=True)]
+    path_checks = [
+        CheckPathExists(),
+        CheckPathIsZarrGroup(),
+    ]
+
+    for check in path_checks:
+        result = check.check(path)
+        if isinstance(result, Failure):
+            failures.append(result)
+            if result.stop:
+                return failures
+
+    root = zarr.open(path, mode="r")
 
     checks = [
         CheckZarrFormatIsV2(),
