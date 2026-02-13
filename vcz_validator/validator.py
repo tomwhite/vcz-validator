@@ -172,6 +172,20 @@ class CheckArrayDimensionNames(ZarrCheck):
             )
 
 
+@dataclass
+class CheckArrayDtypeKind(ZarrCheck):
+    name: str
+    expected_dtype_kind: str
+
+    def check(self, root):
+        arr = root[self.name]
+        if arr.dtype.kind != self.expected_dtype_kind:
+            return Failure(
+                f"Incorrect dtype kind for '{self.name}': "
+                f"expected '{self.expected_dtype_kind}' but was '{arr.dtype.kind}'",
+            )
+
+
 def validate(path):
     failures = []
 
@@ -206,6 +220,10 @@ def validate(path):
         CheckArrayDimensionNames("contig_id", ["contigs"]),
         CheckArrayDimensionNames("filter_id", ["filters"]),
         CheckArrayDimensionNames("sample_id", ["samples"]),
+        CheckArrayDtypeKind("variant_contig", "i"),
+        CheckArrayDtypeKind("variant_position", "i"),
+        CheckArrayDtypeKind("variant_quality", "f"),
+        CheckArrayDtypeKind("variant_filter", "b"),
     ]
 
     for check in checks:

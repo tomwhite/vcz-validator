@@ -162,6 +162,20 @@ def test_failure__field_dimension_names_incorrect(example_vcz_path):
     )
 
 
+def test_failure__field_dtype_kind_incorrect(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    del root["variant_contig"]
+    arr = root.create_array(
+        "variant_contig", data=np.array([0.0, 1.0], dtype=np.float32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants"]
+
+    expect_validate_failure(
+        example_vcz_path,
+        "Incorrect dtype kind for 'variant_contig': expected 'i' but was 'f'",
+    )
+
+
 def test_success(example_vcz_path):
     failures = validate(example_vcz_path)
     assert len(failures) == 0
