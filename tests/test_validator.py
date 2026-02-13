@@ -37,6 +37,9 @@ def example_vcz_path(tmp_path):
 
     create_array("contig_id", ["contigs"], np.array(["chr1", "chr2"], dtype="T"))
     create_array("filter_id", ["filters"], np.array(["PASS"], dtype="T"))
+    create_array(
+        "filter_description", ["filters"], np.array(["All filters passed"], dtype="T")
+    )
     create_array("sample_id", ["samples"], np.array(["S1", "S2", "S3"], dtype="T"))
 
     return path
@@ -149,8 +152,9 @@ def test_failure__required_fields_missing(tmp_path):
 
     expect_validate_failures(
         path,
-        "Missing required fields: contig_id,filter_id,sample_id,variant_allele,"
-        "variant_contig,variant_filter,variant_id,variant_position,variant_quality",
+        "Missing required fields: contig_id,filter_description,filter_id,sample_id,"
+        "variant_allele,variant_contig,variant_filter,variant_id,variant_position,"
+        "variant_quality",
     )
 
 
@@ -202,6 +206,19 @@ def test_failure__string_field_missing_vlen_utf8_filter(example_vcz_path):
         example_vcz_path,
         "Incorrect dtype kind for 'variant_id': expected 'T' but was 'U'",
         "String field 'variant_id' must have a vlen-utf8 filter",
+    )
+
+
+def test_failure__optional_field_dtype_kind_incorrect(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "contig_length", data=np.array([0.0, 1.0], dtype=np.float32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["contigs"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Incorrect dtype kind for 'contig_length': expected 'i' but was 'f'",
     )
 
 

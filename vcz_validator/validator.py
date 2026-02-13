@@ -14,6 +14,7 @@ REQUIRED_VARIABLE_NAMES = [
     "variant_filter",
     "contig_id",
     "filter_id",
+    "filter_description",
     "sample_id",
 ]
 
@@ -163,8 +164,11 @@ class CheckArraySpec(ZarrCheck):
     name: str
     dimension_names: list[str]
     dtype_kind: str
+    optional: bool = False
 
     def check(self, root):
+        if self.optional and self.name not in root:
+            return
         arr = root[self.name]
 
         dims = arr.attrs["_ARRAY_DIMENSIONS"]
@@ -220,7 +224,9 @@ def validate(path):
         CheckArraySpec("variant_quality", ["variants"], "f"),
         CheckArraySpec("variant_filter", ["variants", "filters"], "b"),
         CheckArraySpec("contig_id", ["contigs"], "T"),
+        CheckArraySpec("contig_length", ["contigs"], "i", optional=True),
         CheckArraySpec("filter_id", ["filters"], "T"),
+        CheckArraySpec("filter_description", ["filters"], "T"),
         CheckArraySpec("sample_id", ["samples"], "T"),
     ]
 
