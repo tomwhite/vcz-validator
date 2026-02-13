@@ -95,7 +95,27 @@ class CheckAllArraysHaveDimensionNames(ZarrCheck):
             )
 
 
-# TODO: check dimension names are same length as ndim
+class CheckDimensionNamesLenMatchesArrayDimensionsLen(ZarrCheck):
+    def check(self, root):
+        all_array_dim_counts = {}
+        mismatched_names = []
+        for name in root.array_keys():
+            arr = root[name]
+            dims = arr.attrs["_ARRAY_DIMENSIONS"]
+            all_array_dim_counts[name] = {
+                "dimension_names": len(dims),
+                "ndim": arr.ndim,
+            }
+            if len(dims) != arr.ndim:
+                mismatched_names.append(name)
+        if len(mismatched_names) > 0:
+            return Failure(
+                "Number of dimension names must match array ndim, "
+                f"but they were mismatched for: {','.join(mismatched_names)}.\n"
+                "The dimension name counts and ndims were:\n"
+                f"{pp.pformat(all_array_dim_counts)}",
+                stop=True,
+            )
 
 
 class CheckDimensionNamesHaveConsistentSizes(ZarrCheck):
@@ -174,6 +194,7 @@ def validate(path):
         CheckVcfZarrVersionGroupAttributeIsPresent(),
         CheckVcfZarrVersionIsSupported(),
         CheckAllArraysHaveDimensionNames(),
+        CheckDimensionNamesLenMatchesArrayDimensionsLen(),
         CheckDimensionNamesHaveConsistentSizes(),
         CheckRequiredFieldsArePresent(),
         CheckArrayDimensionNames("variant_contig", ["variants"]),

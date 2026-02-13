@@ -101,6 +101,25 @@ def test_failure__array_dimension_names_missing(tmp_path):
     )
 
 
+def test_failure__dimension_names_len_mismatches_array_ndim(tmp_path):
+    path = Path(tmp_path) / "path"
+    path.mkdir()
+    root = zarr.create_group(path, zarr_format=2)
+    root.attrs["vcf_zarr_version"] = "0.4"
+    variant_position = root.create_array(
+        "variant_position", data=np.array([1, 2], dtype=np.int32)
+    )
+    variant_position.attrs["_ARRAY_DIMENSIONS"] = ["variants", "extra"]
+
+    expect_validate_failure(
+        path,
+        "Number of dimension names must match array ndim, "
+        "but they were mismatched for: variant_position.\n"
+        "The dimension name counts and ndims were:\n"
+        "{'variant_position': {'dimension_names': 2, 'ndim': 1}}",
+    )
+
+
 def test_failure__array_dimension_names_with_inconsistent_sizes(tmp_path):
     path = Path(tmp_path) / "path"
     path.mkdir()
