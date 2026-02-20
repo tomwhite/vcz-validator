@@ -94,6 +94,26 @@ def test_failure__path_vcf_zarr_version_not_supported(tmp_path):
     expect_validate_failures(path, "'vcf_zarr_version' must be '0.4', but was '0.3'")
 
 
+def test_failure__source_attribute_not_a_string(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    root.attrs["source"] = 123
+
+    expect_validate_failures(
+        example_vcz_path,
+        "'source' group attribute must be a string, but was int",
+    )
+
+
+def test_failure__vcf_meta_information_attribute_not_a_list(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    root.attrs["vcf_meta_information"] = "not a list"
+
+    expect_validate_failures(
+        example_vcz_path,
+        "'vcf_meta_information' group attribute must be a list, but was str",
+    )
+
+
 def test_failure__array_dimension_names_missing(tmp_path):
     path = Path(tmp_path) / "path"
     path.mkdir()

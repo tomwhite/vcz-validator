@@ -64,6 +64,26 @@ class CheckVcfZarrVersionIsSupported:
             )
 
 
+class CheckSourceAttribute:
+    def check(self, root):
+        if "source" in root.attrs and not isinstance(root.attrs["source"], str):
+            yield Failure(
+                "'source' group attribute must be a string, but was "
+                + type(root.attrs["source"]).__name__,
+            )
+
+
+class CheckVcfMetaInformationAttribute:
+    def check(self, root):
+        if "vcf_meta_information" in root.attrs and not isinstance(
+            root.attrs["vcf_meta_information"], list
+        ):
+            yield Failure(
+                "'vcf_meta_information' group attribute must be a list, but was "
+                + type(root.attrs["vcf_meta_information"]).__name__,
+            )
+
+
 class CheckAllArraysHaveDimensionNames:
     def check(self, root):
         missing_array_names = []
@@ -287,6 +307,8 @@ def validate(path):
             CheckZarrFormatIsV2(),
             CheckVcfZarrVersionGroupAttributeIsPresent(),
             CheckVcfZarrVersionIsSupported(),
+            CheckSourceAttribute(),
+            CheckVcfMetaInformationAttribute(),
             CheckAllArraysHaveDimensionNames(),
             CheckDimensionNamesLenMatchesArrayDimensionsLen(),
             CheckDimensionNamesHaveConsistentSizes(),
