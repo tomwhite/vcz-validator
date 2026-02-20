@@ -192,7 +192,10 @@ class CheckArraySpec(ZarrCheck):
                 )
 
 
-class CheckInfoFieldDimensions(ZarrCheck):
+VALID_INFO_DTYPE_KINDS = {"b", "i", "f", "T"}
+
+
+class CheckInfoFields(ZarrCheck):
     def check(self, root):
         for name in root.array_keys():
             if not name.startswith("variant_") or name in REQUIRED_VARIABLE_NAMES:
@@ -203,6 +206,11 @@ class CheckInfoFieldDimensions(ZarrCheck):
                 yield Failure(
                     f"INFO field '{name}' must be 2-dimensional with dimensions "
                     f"['variants', ...], but had dimensions {dims}",
+                )
+            if arr.dtype.kind not in VALID_INFO_DTYPE_KINDS:
+                yield Failure(
+                    f"INFO field '{name}' has invalid dtype kind '{arr.dtype.kind}'. "
+                    "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
                 )
 
 
@@ -242,7 +250,7 @@ def validate(path):
         CheckArraySpec("filter_id", ["filters"], "T"),
         CheckArraySpec("filter_description", ["filters"], "T"),
         CheckArraySpec("sample_id", ["samples"], "T"),
-        CheckInfoFieldDimensions(),
+        CheckInfoFields(),
     ]
 
     for check in checks:

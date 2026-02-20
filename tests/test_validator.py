@@ -234,6 +234,21 @@ def test_failure__info_field_wrong_number_of_dimensions(example_vcz_path):
     )
 
 
+def test_failure__info_field_invalid_dtype(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "variant_AD",
+        data=np.array([[1 + 2j, 3 + 4j], [5 + 6j, 7 + 8j]], dtype=np.complex64),
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "INFO field 'variant_AD' has invalid dtype kind 'c'. "
+        "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
+    )
+
+
 @pytest.mark.parametrize("path_type", [Path, str])
 def test_success(example_vcz_path, path_type):
     failures = validate(path_type(example_vcz_path))
