@@ -178,6 +178,9 @@ class CheckArraySpec:
 GENOTYPE_FIELD_NAMES = ["call_genotype", "call_genotype_phased"]
 
 VALID_FIELD_DTYPE_KINDS = {"b", "i", "f", "T"}
+VALID_FIELD_DTYPE_KINDS_MESSAGE = (
+    "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)"
+)
 
 
 def _is_mask_or_fill(name):
@@ -201,7 +204,7 @@ class CheckInfoFields:
             if arr.dtype.kind not in VALID_FIELD_DTYPE_KINDS:
                 yield Failure(
                     f"INFO field '{name}' has invalid dtype kind '{arr.dtype.kind}'. "
-                    "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
+                    + VALID_FIELD_DTYPE_KINDS_MESSAGE,
                 )
 
 
@@ -222,7 +225,7 @@ class CheckFormatFields:
             if arr.dtype.kind not in VALID_FIELD_DTYPE_KINDS:
                 yield Failure(
                     f"FORMAT field '{name}' has invalid dtype kind '{arr.dtype.kind}'. "
-                    "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
+                    + VALID_FIELD_DTYPE_KINDS_MESSAGE,
                 )
 
 
