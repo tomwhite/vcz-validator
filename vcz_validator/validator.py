@@ -8,15 +8,25 @@ from zarr.errors import GroupNotFoundError
 REQUIRED_VARIABLE_NAMES = [
     "variant_contig",
     "variant_position",
-    "variant_id",
     "variant_allele",
-    "variant_quality",
-    "variant_filter",
     "contig_id",
-    "filter_id",
-    "filter_description",
     "sample_id",
 ]
+
+OPTIONAL_VARIABLE_NAMES = [
+    "variant_id",
+    "variant_quality",
+    "variant_filter",
+    "filter_id",
+    "filter_description",
+    "variant_length",
+]
+
+GENOTYPE_VARIABLE_NAMES = ["call_genotype", "call_genotype_phased"]
+
+RESERVED_VARIABLE_NAMES = (
+    REQUIRED_VARIABLE_NAMES + OPTIONAL_VARIABLE_NAMES + GENOTYPE_VARIABLE_NAMES
+)
 
 
 @dataclass
@@ -195,8 +205,6 @@ class CheckArraySpec:
                 )
 
 
-GENOTYPE_FIELD_NAMES = ["call_genotype", "call_genotype_phased"]
-
 VALID_FIELD_DTYPE_KINDS = {"b", "i", "f", "T"}
 VALID_FIELD_DTYPE_KINDS_MESSAGE = (
     "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)"
@@ -214,7 +222,7 @@ def _is_mask_or_fill(name):
 class CheckInfoFields:
     def check(self, root):
         for name in root.array_keys():
-            if not name.startswith("variant_") or name in REQUIRED_VARIABLE_NAMES:
+            if not name.startswith("variant_") or name in RESERVED_VARIABLE_NAMES:
                 continue
             if _is_mask_or_fill(name):
                 continue
@@ -235,7 +243,7 @@ class CheckInfoFields:
 class CheckFormatFields:
     def check(self, root):
         for name in root.array_keys():
-            if not name.startswith("call_") or name in GENOTYPE_FIELD_NAMES:
+            if not name.startswith("call_") or name in GENOTYPE_VARIABLE_NAMES:
                 continue
             if _is_mask_or_fill(name):
                 continue
@@ -315,15 +323,18 @@ def validate(path):
             CheckRequiredFieldsArePresent(),
             CheckArraySpec("variant_contig", ["variants"], "i"),
             CheckArraySpec("variant_position", ["variants"], "i"),
-            CheckArraySpec("variant_id", ["variants"], "T"),
+            CheckArraySpec("variant_id", ["variants"], "T", optional=True),
             CheckArraySpec("variant_allele", ["variants", "alleles"], "T"),
-            CheckArraySpec("variant_quality", ["variants"], "f"),
-            CheckArraySpec("variant_filter", ["variants", "filters"], "b"),
+            CheckArraySpec("variant_quality", ["variants"], "f", optional=True),
+            CheckArraySpec(
+                "variant_filter", ["variants", "filters"], "b", optional=True
+            ),
             CheckArraySpec("contig_id", ["contigs"], "T"),
             CheckArraySpec("contig_length", ["contigs"], "i", optional=True),
-            CheckArraySpec("filter_id", ["filters"], "T"),
-            CheckArraySpec("filter_description", ["filters"], "T"),
+            CheckArraySpec("filter_id", ["filters"], "T", optional=True),
+            CheckArraySpec("filter_description", ["filters"], "T", optional=True),
             CheckArraySpec("sample_id", ["samples"], "T"),
+            CheckArraySpec("variant_length", ["variants"], "i", optional=True),
             CheckArraySpec(
                 "call_genotype", ["variants", "samples", "ploidy"], "i", optional=True
             ),

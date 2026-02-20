@@ -172,9 +172,8 @@ def test_failure__required_fields_missing(tmp_path):
 
     expect_validate_failures(
         path,
-        "Missing required fields: contig_id,filter_description,filter_id,sample_id,"
-        "variant_allele,variant_contig,variant_filter,variant_id,variant_position,"
-        "variant_quality",
+        "Missing required fields: contig_id,sample_id,variant_allele,variant_contig,"
+        "variant_position",
     )
 
 
