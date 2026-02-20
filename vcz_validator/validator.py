@@ -192,6 +192,8 @@ class CheckArraySpec(ZarrCheck):
                 )
 
 
+GENOTYPE_FIELD_NAMES = ["call_genotype", "call_genotype_phased"]
+
 VALID_FIELD_DTYPE_KINDS = {"b", "i", "f", "T"}
 
 
@@ -217,7 +219,7 @@ class CheckInfoFields(ZarrCheck):
 class CheckFormatFields(ZarrCheck):
     def check(self, root):
         for name in root.array_keys():
-            if not name.startswith("call_"):
+            if not name.startswith("call_") or name in GENOTYPE_FIELD_NAMES:
                 continue
             arr = root[name]
             dims = arr.attrs["_ARRAY_DIMENSIONS"]
@@ -269,6 +271,12 @@ def validate(path):
         CheckArraySpec("filter_id", ["filters"], "T"),
         CheckArraySpec("filter_description", ["filters"], "T"),
         CheckArraySpec("sample_id", ["samples"], "T"),
+        CheckArraySpec(
+            "call_genotype", ["variants", "samples", "ploidy"], "i", optional=True
+        ),
+        CheckArraySpec(
+            "call_genotype_phased", ["variants", "samples"], "b", optional=True
+        ),
         CheckInfoFields(),
         CheckFormatFields(),
     ]

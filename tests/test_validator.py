@@ -285,6 +285,70 @@ def test_failure__format_field_invalid_dtype(example_vcz_path):
     )
 
 
+def test_failure__call_genotype_wrong_dimensions(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "call_genotype",
+        data=np.array([[0, 1, 0], [1, 0, 1]], dtype=np.int32),
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Incorrect dimension names for 'call_genotype': "
+        "expected ['variants', 'samples', 'ploidy'] but was ['variants', 'samples']",
+    )
+
+
+def test_failure__call_genotype_wrong_dtype(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "call_genotype",
+        data=np.array(
+            [
+                [[0.0, 1.0], [1.0, 0.0], [0.0, 1.0]],
+                [[1.0, 0.0], [0.0, 1.0], [1.0, 0.0]],
+            ],
+            dtype=np.float32,
+        ),
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples", "ploidy"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Incorrect dtype kind for 'call_genotype': expected 'i' but was 'f'",
+    )
+
+
+def test_failure__call_genotype_phased_wrong_dimensions(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "call_genotype_phased",
+        data=np.array([True, False], dtype=np.bool_),
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Incorrect dimension names for 'call_genotype_phased': "
+        "expected ['variants', 'samples'] but was ['variants']",
+    )
+
+
+def test_failure__call_genotype_phased_wrong_dtype(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "call_genotype_phased",
+        data=np.array([[0, 1, 0], [1, 0, 1]], dtype=np.int32),
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Incorrect dtype kind for 'call_genotype_phased': expected 'b' but was 'i'",
+    )
+
+
 @pytest.mark.parametrize("path_type", [Path, str])
 def test_success(example_vcz_path, path_type):
     failures = validate(path_type(example_vcz_path))
