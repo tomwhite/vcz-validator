@@ -198,7 +198,8 @@ def test_failure__field_dtype_kind_incorrect(example_vcz_path):
 
     expect_validate_failures(
         example_vcz_path,
-        "Incorrect dtype kind for 'variant_contig': expected 'i' but was 'f'",
+        "Incorrect datatype for 'variant_contig': expected 'int' but array dtype "
+        "kind was 'f'",
     )
 
 
@@ -210,7 +211,8 @@ def test_failure__string_field_dtype_kind_incorrect(example_vcz_path):
 
     expect_validate_failures(
         example_vcz_path,
-        "Incorrect dtype kind for 'variant_id': expected 'T' but was 'i'",
+        "Incorrect datatype for 'variant_id': expected 'str' but array dtype kind "
+        "was 'i'",
         "String field 'variant_id' must have a vlen-utf8 filter",
     )
 
@@ -223,7 +225,6 @@ def test_failure__string_field_missing_vlen_utf8_filter(example_vcz_path):
 
     expect_validate_failures(
         example_vcz_path,
-        "Incorrect dtype kind for 'variant_id': expected 'T' but was 'U'",
         "String field 'variant_id' must have a vlen-utf8 filter",
     )
 
@@ -237,7 +238,8 @@ def test_failure__optional_field_dtype_kind_incorrect(example_vcz_path):
 
     expect_validate_failures(
         example_vcz_path,
-        "Incorrect dtype kind for 'contig_length': expected 'i' but was 'f'",
+        "Incorrect datatype for 'contig_length': expected 'int' but array dtype "
+        "kind was 'f'",
     )
 
 
@@ -264,7 +266,7 @@ def test_failure__info_field_invalid_dtype(example_vcz_path):
     expect_validate_failures(
         example_vcz_path,
         "INFO field 'variant_AD' has invalid dtype kind 'c'. "
-        "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
+        "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'S','U','T' (str)",
     )
 
 
@@ -300,7 +302,7 @@ def test_failure__format_field_invalid_dtype(example_vcz_path):
     expect_validate_failures(
         example_vcz_path,
         "FORMAT field 'call_AD' has invalid dtype kind 'c'. "
-        "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
+        "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'S','U','T' (str)",
     )
 
 
@@ -335,7 +337,8 @@ def test_failure__call_genotype_wrong_dtype(example_vcz_path):
 
     expect_validate_failures(
         example_vcz_path,
-        "Incorrect dtype kind for 'call_genotype': expected 'i' but was 'f'",
+        "Incorrect datatype for 'call_genotype': expected 'int' but array dtype "
+        "kind was 'f'",
     )
 
 
@@ -364,7 +367,8 @@ def test_failure__call_genotype_phased_wrong_dtype(example_vcz_path):
 
     expect_validate_failures(
         example_vcz_path,
-        "Incorrect dtype kind for 'call_genotype_phased': expected 'b' but was 'i'",
+        "Incorrect datatype for 'call_genotype_phased': expected 'bool' but array "
+        "dtype kind was 'i'",
     )
 
 

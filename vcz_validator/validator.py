@@ -1,5 +1,6 @@
 import pprint as pp
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
 import zarr
@@ -26,6 +27,29 @@ GENOTYPE_VARIABLE_NAMES = ["call_genotype", "call_genotype_phased"]
 
 RESERVED_VARIABLE_NAMES = (
     REQUIRED_VARIABLE_NAMES + OPTIONAL_VARIABLE_NAMES + GENOTYPE_VARIABLE_NAMES
+)
+
+
+class Datatype(Enum):
+    BOOL = "bool", ["b"]
+    INT = "int", ["i"]
+    FLOAT = "float", ["f"]
+    CHAR = "char", ["U"]
+    STR = "str", ["S", "U", "T"]
+
+    def __str__(self) -> str:
+        return self.value[0]
+
+    def is_kind(self, dtype_kind):
+        return dtype_kind in self.value[1]
+
+    @classmethod
+    def is_valid(cls, dtype_kind):
+        return any([d.is_kind(dtype_kind) for d in cls])
+
+
+VALID_FIELD_DTYPE_KINDS_MESSAGE = (
+    "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'S','U','T' (str)"
 )
 
 
@@ -176,7 +200,7 @@ class CheckRequiredFieldsArePresent:
 class CheckArraySpec:
     name: str
     dimension_names: list[str]
-    dtype_kind: str
+    datatype: Datatype
     optional: bool = False
 
     def check(self, root):
@@ -191,24 +215,19 @@ class CheckArraySpec:
                 f"expected {self.dimension_names} but was {dims}",
             )
 
-        if arr.dtype.kind != self.dtype_kind:
+        if not self.datatype.is_kind(arr.dtype.kind):
             yield Failure(
-                f"Incorrect dtype kind for '{self.name}': "
-                f"expected '{self.dtype_kind}' but was '{arr.dtype.kind}'",
+                f"Incorrect datatype for '{self.name}': "
+                f"expected '{self.datatype}' but array dtype kind was "
+                f"'{arr.dtype.kind}'",
             )
 
-        if self.dtype_kind == "T":
+        if self.datatype == Datatype.STR:
             has_vlen_utf8 = any(f.codec_id == "vlen-utf8" for f in arr.filters)
             if not has_vlen_utf8:
                 yield Failure(
                     f"String field '{self.name}' must have a vlen-utf8 filter",
                 )
-
-
-VALID_FIELD_DTYPE_KINDS = {"b", "i", "f", "T"}
-VALID_FIELD_DTYPE_KINDS_MESSAGE = (
-    "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)"
-)
 
 
 def _dimension_names(arr):
@@ -233,7 +252,7 @@ class CheckInfoFields:
                     f"INFO field '{name}' must be 2-dimensional with dimensions "
                     f"['variants', ...], but had dimensions {dims}",
                 )
-            if arr.dtype.kind not in VALID_FIELD_DTYPE_KINDS:
+            if not Datatype.is_valid(arr.dtype.kind):
                 yield Failure(
                     f"INFO field '{name}' has invalid dtype kind '{arr.dtype.kind}'. "
                     + VALID_FIELD_DTYPE_KINDS_MESSAGE,
@@ -254,7 +273,7 @@ class CheckFormatFields:
                     f"FORMAT field '{name}' must be 3-dimensional with dimensions "
                     f"['variants', 'samples', ...], but had dimensions {dims}",
                 )
-            if arr.dtype.kind not in VALID_FIELD_DTYPE_KINDS:
+            if not Datatype.is_valid(arr.dtype.kind):
                 yield Failure(
                     f"FORMAT field '{name}' has invalid dtype kind '{arr.dtype.kind}'. "
                     + VALID_FIELD_DTYPE_KINDS_MESSAGE,
@@ -273,7 +292,7 @@ class CheckMaskAndFillArrays:
                     continue
                 arr = root[name]
                 parent_arr = root[parent_name]
-                if arr.dtype.kind != "b":
+                if not Datatype.BOOL.is_kind(arr.dtype.kind):
                     yield Failure(
                         f"{label} array '{name}' must have dtype kind 'b' (bool), "
                         f"but was '{arr.dtype.kind}'",
@@ -321,25 +340,35 @@ def validate(path):
             CheckDimensionNamesLenMatchesArrayDimensionsLen(),
             CheckDimensionNamesHaveConsistentSizes(),
             CheckRequiredFieldsArePresent(),
-            CheckArraySpec("variant_contig", ["variants"], "i"),
-            CheckArraySpec("variant_position", ["variants"], "i"),
-            CheckArraySpec("variant_id", ["variants"], "T", optional=True),
-            CheckArraySpec("variant_allele", ["variants", "alleles"], "T"),
-            CheckArraySpec("variant_quality", ["variants"], "f", optional=True),
+            CheckArraySpec("variant_contig", ["variants"], Datatype.INT),
+            CheckArraySpec("variant_position", ["variants"], Datatype.INT),
+            CheckArraySpec("variant_id", ["variants"], Datatype.STR, optional=True),
+            CheckArraySpec("variant_allele", ["variants", "alleles"], Datatype.STR),
             CheckArraySpec(
-                "variant_filter", ["variants", "filters"], "b", optional=True
-            ),
-            CheckArraySpec("contig_id", ["contigs"], "T"),
-            CheckArraySpec("contig_length", ["contigs"], "i", optional=True),
-            CheckArraySpec("filter_id", ["filters"], "T", optional=True),
-            CheckArraySpec("filter_description", ["filters"], "T", optional=True),
-            CheckArraySpec("sample_id", ["samples"], "T"),
-            CheckArraySpec("variant_length", ["variants"], "i", optional=True),
-            CheckArraySpec(
-                "call_genotype", ["variants", "samples", "ploidy"], "i", optional=True
+                "variant_quality", ["variants"], Datatype.FLOAT, optional=True
             ),
             CheckArraySpec(
-                "call_genotype_phased", ["variants", "samples"], "b", optional=True
+                "variant_filter", ["variants", "filters"], Datatype.BOOL, optional=True
+            ),
+            CheckArraySpec("contig_id", ["contigs"], Datatype.STR),
+            CheckArraySpec("contig_length", ["contigs"], Datatype.INT, optional=True),
+            CheckArraySpec("filter_id", ["filters"], Datatype.STR, optional=True),
+            CheckArraySpec(
+                "filter_description", ["filters"], Datatype.STR, optional=True
+            ),
+            CheckArraySpec("sample_id", ["samples"], Datatype.STR),
+            CheckArraySpec("variant_length", ["variants"], Datatype.INT, optional=True),
+            CheckArraySpec(
+                "call_genotype",
+                ["variants", "samples", "ploidy"],
+                Datatype.INT,
+                optional=True,
+            ),
+            CheckArraySpec(
+                "call_genotype_phased",
+                ["variants", "samples"],
+                Datatype.BOOL,
+                optional=True,
             ),
             CheckInfoFields(),
             CheckFormatFields(),
