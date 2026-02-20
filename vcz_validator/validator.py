@@ -20,35 +20,18 @@ REQUIRED_VARIABLE_NAMES = [
 
 
 @dataclass
-class Check:
-    pass
-
-
-@dataclass
-class PathCheck(Check):
-    def check(self, path):
-        pass
-
-
-@dataclass
-class ZarrCheck(Check):
-    def check(self, root):
-        pass
-
-
-@dataclass
 class Failure:
     message: str
     stop: bool = False
 
 
-class CheckPathExists(PathCheck):
+class CheckPathExists:
     def check(self, path):
         if not path.exists():
             yield Failure(f"Path '{path}' does not exist", stop=True)
 
 
-class CheckPathIsZarrGroup(PathCheck):
+class CheckPathIsZarrGroup:
     def check(self, path):
         try:
             zarr.open(path, mode="r")
@@ -56,14 +39,14 @@ class CheckPathIsZarrGroup(PathCheck):
             yield Failure(f"Path '{path}' is not a Zarr group", stop=True)
 
 
-class CheckZarrFormatIsV2(ZarrCheck):
+class CheckZarrFormatIsV2:
     def check(self, root):
         zarr_format = root.metadata.zarr_format
         if zarr_format != 2:
             yield Failure(f"Zarr format must be 2, but was {zarr_format}", stop=True)
 
 
-class CheckVcfZarrVersionGroupAttributeIsPresent(ZarrCheck):
+class CheckVcfZarrVersionGroupAttributeIsPresent:
     def check(self, root):
         if "vcf_zarr_version" not in root.attrs:
             yield Failure(
@@ -71,7 +54,7 @@ class CheckVcfZarrVersionGroupAttributeIsPresent(ZarrCheck):
             )
 
 
-class CheckVcfZarrVersionIsSupported(ZarrCheck):
+class CheckVcfZarrVersionIsSupported:
     def check(self, root):
         vcf_zarr_version = root.attrs["vcf_zarr_version"]
         if vcf_zarr_version != "0.4":
@@ -81,7 +64,7 @@ class CheckVcfZarrVersionIsSupported(ZarrCheck):
             )
 
 
-class CheckAllArraysHaveDimensionNames(ZarrCheck):
+class CheckAllArraysHaveDimensionNames:
     def check(self, root):
         missing_array_names = []
         for name in root.array_keys():
@@ -97,7 +80,7 @@ class CheckAllArraysHaveDimensionNames(ZarrCheck):
             )
 
 
-class CheckDimensionNamesLenMatchesArrayDimensionsLen(ZarrCheck):
+class CheckDimensionNamesLenMatchesArrayDimensionsLen:
     def check(self, root):
         all_array_dim_counts = {}
         mismatched_names = []
@@ -120,7 +103,7 @@ class CheckDimensionNamesLenMatchesArrayDimensionsLen(ZarrCheck):
             )
 
 
-class CheckDimensionNamesHaveConsistentSizes(ZarrCheck):
+class CheckDimensionNamesHaveConsistentSizes:
     def check(self, root):
         all_array_dimensions = {}
         dimension_name_to_size = {}
@@ -146,7 +129,7 @@ class CheckDimensionNamesHaveConsistentSizes(ZarrCheck):
             )
 
 
-class CheckRequiredFieldsArePresent(ZarrCheck):
+class CheckRequiredFieldsArePresent:
     def check(self, root):
         missing_required_field_names = set(REQUIRED_VARIABLE_NAMES) - set(
             root.array_keys()
@@ -160,7 +143,7 @@ class CheckRequiredFieldsArePresent(ZarrCheck):
 
 
 @dataclass
-class CheckArraySpec(ZarrCheck):
+class CheckArraySpec:
     name: str
     dimension_names: list[str]
     dtype_kind: str
@@ -201,7 +184,7 @@ def _is_mask_or_fill(name):
     return name.endswith("_mask") or name.endswith("_fill")
 
 
-class CheckInfoFields(ZarrCheck):
+class CheckInfoFields:
     def check(self, root):
         for name in root.array_keys():
             if not name.startswith("variant_") or name in REQUIRED_VARIABLE_NAMES:
@@ -222,7 +205,7 @@ class CheckInfoFields(ZarrCheck):
                 )
 
 
-class CheckFormatFields(ZarrCheck):
+class CheckFormatFields:
     def check(self, root):
         for name in root.array_keys():
             if not name.startswith("call_") or name in GENOTYPE_FIELD_NAMES:
@@ -243,7 +226,7 @@ class CheckFormatFields(ZarrCheck):
                 )
 
 
-class CheckMaskAndFillArrays(ZarrCheck):
+class CheckMaskAndFillArrays:
     def check(self, root):
         array_names = set(root.array_keys())
         for name in array_names:
