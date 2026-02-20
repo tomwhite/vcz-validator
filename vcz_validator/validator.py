@@ -247,9 +247,9 @@ class CheckInfoFields:
                 continue
             arr = root[name]
             dims = _dimension_names(arr)
-            if len(dims) != 2 or dims[0] != "variants":
+            if (len(dims) != 1 and len(dims) != 2) or dims[0] != "variants":
                 yield Failure(
-                    f"INFO field '{name}' must be 2-dimensional with dimensions "
+                    f"INFO field '{name}' must be 1- or 2-dimensional with dimensions "
                     f"['variants', ...], but had dimensions {dims}",
                 )
             if not Datatype.is_valid(arr.dtype.kind):
@@ -268,10 +268,15 @@ class CheckFormatFields:
                 continue
             arr = root[name]
             dims = _dimension_names(arr)
-            if len(dims) != 3 or dims[0] != "variants" or dims[1] != "samples":
+            if (
+                (len(dims) != 2 and len(dims) != 3)
+                or dims[0] != "variants"
+                or dims[1] != "samples"
+            ):
                 yield Failure(
-                    f"FORMAT field '{name}' must be 3-dimensional with dimensions "
-                    f"['variants', 'samples', ...], but had dimensions {dims}",
+                    f"FORMAT field '{name}' must be 2- or 3-dimensional with "
+                    "dimensions ['variants', 'samples', ...], "
+                    f"but had dimensions {dims}",
                 )
             if not Datatype.is_valid(arr.dtype.kind):
                 yield Failure(

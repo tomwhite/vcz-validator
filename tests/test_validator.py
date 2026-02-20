@@ -245,27 +245,29 @@ def test_failure__optional_field_dtype_kind_incorrect(example_vcz_path):
 
 def test_failure__info_field_wrong_number_of_dimensions(example_vcz_path):
     root = zarr.open(example_vcz_path, mode="r+")
-    arr = root.create_array("variant_AD", data=np.array([1, 2], dtype=np.int32))
-    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants"]
+    arr = root.create_array(
+        "variant_INT", data=np.array([[[1], [2]], [[3], [4]]], dtype=np.int32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "dim1", "dim2"]
 
     expect_validate_failures(
         example_vcz_path,
-        "INFO field 'variant_AD' must be 2-dimensional with dimensions "
-        "['variants', ...], but had dimensions ['variants']",
+        "INFO field 'variant_INT' must be 1- or 2-dimensional with dimensions "
+        "['variants', ...], but had dimensions ['variants', 'dim1', 'dim2']",
     )
 
 
 def test_failure__info_field_invalid_dtype(example_vcz_path):
     root = zarr.open(example_vcz_path, mode="r+")
     arr = root.create_array(
-        "variant_AD",
+        "variant_INT",
         data=np.array([[1 + 2j, 3 + 4j], [5 + 6j, 7 + 8j]], dtype=np.complex64),
     )
-    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "dim1"]
 
     expect_validate_failures(
         example_vcz_path,
-        "INFO field 'variant_AD' has invalid dtype kind 'c'. "
+        "INFO field 'variant_INT' has invalid dtype kind 'c'. "
         "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'S','U','T' (str)",
     )
 
@@ -273,22 +275,23 @@ def test_failure__info_field_invalid_dtype(example_vcz_path):
 def test_failure__format_field_wrong_number_of_dimensions(example_vcz_path):
     root = zarr.open(example_vcz_path, mode="r+")
     arr = root.create_array(
-        "call_AD",
-        data=np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32),
+        "call_INT",
+        data=np.array([[[[1]], [[2]], [[3]]], [[[4]], [[5]], [[6]]]], dtype=np.int32),
     )
-    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples"]
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples", "dim1", "dim2"]
 
     expect_validate_failures(
         example_vcz_path,
-        "FORMAT field 'call_AD' must be 3-dimensional with dimensions "
-        "['variants', 'samples', ...], but had dimensions ['variants', 'samples']",
+        "FORMAT field 'call_INT' must be 2- or 3-dimensional with dimensions "
+        "['variants', 'samples', ...], but had dimensions "
+        "['variants', 'samples', 'dim1', 'dim2']",
     )
 
 
 def test_failure__format_field_invalid_dtype(example_vcz_path):
     root = zarr.open(example_vcz_path, mode="r+")
     arr = root.create_array(
-        "call_AD",
+        "call_INT",
         data=np.array(
             [
                 [[1 + 2j, 3 + 4j], [5 + 6j, 7 + 8j], [1 + 0j, 2 + 0j]],
@@ -297,11 +300,11 @@ def test_failure__format_field_invalid_dtype(example_vcz_path):
             dtype=np.complex64,
         ),
     )
-    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples", "alleles"]
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "samples", "dim1"]
 
     expect_validate_failures(
         example_vcz_path,
-        "FORMAT field 'call_AD' has invalid dtype kind 'c'. "
+        "FORMAT field 'call_INT' has invalid dtype kind 'c'. "
         "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'S','U','T' (str)",
     )
 
