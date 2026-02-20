@@ -6,6 +6,15 @@ from pathlib import Path
 import zarr
 from zarr.errors import GroupNotFoundError
 
+
+class ValidationFailureError(Exception):
+    def __init__(self, failures) -> None:
+        self.failures = failures
+
+    def __str__(self) -> str:
+        return "\n".join([f"Failure: {f.message}" for f in self.failures])
+
+
 REQUIRED_VARIABLE_NAMES = [
     "variant_contig",
     "variant_position",
@@ -319,7 +328,7 @@ def _run_checks(checks, arg):
     return failures, False
 
 
-def validate(path):
+def validate(path, raise_on_failure=False):
     path = Path(path)
 
     failures, stopped = _run_checks(
@@ -330,6 +339,8 @@ def validate(path):
         path,
     )
     if stopped:
+        if len(failures) > 0 and raise_on_failure:
+            raise ValidationFailureError(failures)
         return failures
 
     root = zarr.open(path, mode="r")
@@ -382,5 +393,8 @@ def validate(path):
         root,
     )
     failures.extend(zarr_failures)
+
+    if len(failures) > 0 and raise_on_failure:
+        raise ValidationFailureError(failures)
 
     return failures

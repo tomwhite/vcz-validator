@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import zarr
 
-from vcz_validator.validator import validate
+from vcz_validator.validator import ValidationFailureError, validate
 
 
 @pytest.fixture()
@@ -58,6 +58,15 @@ def test_failure__path_does_not_exist(tmp_path):
         non_existent_path,
         f"Path '{non_existent_path}' does not exist",
     )
+
+
+def test_raise_on_failure(tmp_path):
+    non_existent_path = Path(tmp_path) / "non-existent"
+    with pytest.raises(
+        ValidationFailureError,
+        match=f"Failure: Path '{non_existent_path}' does not exist",
+    ):
+        validate(non_existent_path, raise_on_failure=True)
 
 
 def test_failure__path_is_not_zarr_group(tmp_path):
@@ -451,3 +460,5 @@ def test_failure__fill_array_wrong_shape(example_vcz_path):
 def test_success(example_vcz_path, path_type):
     failures = validate(path_type(example_vcz_path))
     assert len(failures) == 0
+
+    validate(path_type(example_vcz_path), raise_on_failure=True)
