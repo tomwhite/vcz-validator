@@ -250,57 +250,63 @@ class CheckMaskAndFillArrays:
                     )
 
 
-def validate(path):
-    path = Path(path)
+def _run_checks(checks, arg):
     failures = []
-
-    path_checks = [
-        CheckPathExists(),
-        CheckPathIsZarrGroup(),
-    ]
-
-    for check in path_checks:
-        for failure in check.check(path):
+    for check in checks:
+        for failure in check.check(arg):
             failures.append(failure)
             if failure.stop:
-                return failures
+                return failures, True
+    return failures, False
+
+
+def validate(path):
+    path = Path(path)
+
+    failures, stopped = _run_checks(
+        [
+            CheckPathExists(),
+            CheckPathIsZarrGroup(),
+        ],
+        path,
+    )
+    if stopped:
+        return failures
 
     root = zarr.open(path, mode="r")
 
-    checks = [
-        CheckZarrFormatIsV2(),
-        CheckVcfZarrVersionGroupAttributeIsPresent(),
-        CheckVcfZarrVersionIsSupported(),
-        CheckAllArraysHaveDimensionNames(),
-        CheckDimensionNamesLenMatchesArrayDimensionsLen(),
-        CheckDimensionNamesHaveConsistentSizes(),
-        CheckRequiredFieldsArePresent(),
-        CheckArraySpec("variant_contig", ["variants"], "i"),
-        CheckArraySpec("variant_position", ["variants"], "i"),
-        CheckArraySpec("variant_id", ["variants"], "T"),
-        CheckArraySpec("variant_allele", ["variants", "alleles"], "T"),
-        CheckArraySpec("variant_quality", ["variants"], "f"),
-        CheckArraySpec("variant_filter", ["variants", "filters"], "b"),
-        CheckArraySpec("contig_id", ["contigs"], "T"),
-        CheckArraySpec("contig_length", ["contigs"], "i", optional=True),
-        CheckArraySpec("filter_id", ["filters"], "T"),
-        CheckArraySpec("filter_description", ["filters"], "T"),
-        CheckArraySpec("sample_id", ["samples"], "T"),
-        CheckArraySpec(
-            "call_genotype", ["variants", "samples", "ploidy"], "i", optional=True
-        ),
-        CheckArraySpec(
-            "call_genotype_phased", ["variants", "samples"], "b", optional=True
-        ),
-        CheckInfoFields(),
-        CheckFormatFields(),
-        CheckMaskAndFillArrays(),
-    ]
-
-    for check in checks:
-        for failure in check.check(root):
-            failures.append(failure)
-            if failure.stop:
-                return failures
+    zarr_failures, _ = _run_checks(
+        [
+            CheckZarrFormatIsV2(),
+            CheckVcfZarrVersionGroupAttributeIsPresent(),
+            CheckVcfZarrVersionIsSupported(),
+            CheckAllArraysHaveDimensionNames(),
+            CheckDimensionNamesLenMatchesArrayDimensionsLen(),
+            CheckDimensionNamesHaveConsistentSizes(),
+            CheckRequiredFieldsArePresent(),
+            CheckArraySpec("variant_contig", ["variants"], "i"),
+            CheckArraySpec("variant_position", ["variants"], "i"),
+            CheckArraySpec("variant_id", ["variants"], "T"),
+            CheckArraySpec("variant_allele", ["variants", "alleles"], "T"),
+            CheckArraySpec("variant_quality", ["variants"], "f"),
+            CheckArraySpec("variant_filter", ["variants", "filters"], "b"),
+            CheckArraySpec("contig_id", ["contigs"], "T"),
+            CheckArraySpec("contig_length", ["contigs"], "i", optional=True),
+            CheckArraySpec("filter_id", ["filters"], "T"),
+            CheckArraySpec("filter_description", ["filters"], "T"),
+            CheckArraySpec("sample_id", ["samples"], "T"),
+            CheckArraySpec(
+                "call_genotype", ["variants", "samples", "ploidy"], "i", optional=True
+            ),
+            CheckArraySpec(
+                "call_genotype_phased", ["variants", "samples"], "b", optional=True
+            ),
+            CheckInfoFields(),
+            CheckFormatFields(),
+            CheckMaskAndFillArrays(),
+        ],
+        root,
+    )
+    failures.extend(zarr_failures)
 
     return failures
