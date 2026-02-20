@@ -349,6 +349,78 @@ def test_failure__call_genotype_phased_wrong_dtype(example_vcz_path):
     )
 
 
+def test_failure__mask_array_wrong_dtype(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    # Add a valid INFO field
+    arr = root.create_array(
+        "variant_DP", data=np.array([[10, 20], [30, 40]], dtype=np.int32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+    # Add a mask with wrong dtype
+    mask = root.create_array(
+        "variant_DP_mask", data=np.array([[0, 1], [1, 0]], dtype=np.int32)
+    )
+    mask.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Mask array 'variant_DP_mask' must have dtype kind 'b' (bool), " "but was 'i'",
+    )
+
+
+def test_failure__mask_array_wrong_shape(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "variant_DP", data=np.array([[10, 20], [30, 40]], dtype=np.int32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+    mask = root.create_array(
+        "variant_DP_mask", data=np.array([True, False], dtype=np.bool_)
+    )
+    mask.attrs["_ARRAY_DIMENSIONS"] = ["variants"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Mask array 'variant_DP_mask' must have the same shape as "
+        "'variant_DP' (2, 2), but was (2,)",
+    )
+
+
+def test_failure__fill_array_wrong_dtype(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "variant_DP", data=np.array([[10, 20], [30, 40]], dtype=np.int32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+    fill = root.create_array(
+        "variant_DP_fill", data=np.array([[0, 1], [1, 0]], dtype=np.int32)
+    )
+    fill.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Fill array 'variant_DP_fill' must have dtype kind 'b' (bool), " "but was 'i'",
+    )
+
+
+def test_failure__fill_array_wrong_shape(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array(
+        "variant_DP", data=np.array([[10, 20], [30, 40]], dtype=np.int32)
+    )
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants", "alleles"]
+    fill = root.create_array(
+        "variant_DP_fill", data=np.array([True, False], dtype=np.bool_)
+    )
+    fill.attrs["_ARRAY_DIMENSIONS"] = ["variants"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "Fill array 'variant_DP_fill' must have the same shape as "
+        "'variant_DP' (2, 2), but was (2,)",
+    )
+
+
 @pytest.mark.parametrize("path_type", [Path, str])
 def test_success(example_vcz_path, path_type):
     failures = validate(path_type(example_vcz_path))

@@ -197,10 +197,16 @@ GENOTYPE_FIELD_NAMES = ["call_genotype", "call_genotype_phased"]
 VALID_FIELD_DTYPE_KINDS = {"b", "i", "f", "T"}
 
 
+def _is_mask_or_fill(name):
+    return name.endswith("_mask") or name.endswith("_fill")
+
+
 class CheckInfoFields(ZarrCheck):
     def check(self, root):
         for name in root.array_keys():
             if not name.startswith("variant_") or name in REQUIRED_VARIABLE_NAMES:
+                continue
+            if _is_mask_or_fill(name):
                 continue
             arr = root[name]
             dims = arr.attrs["_ARRAY_DIMENSIONS"]
@@ -221,6 +227,8 @@ class CheckFormatFields(ZarrCheck):
         for name in root.array_keys():
             if not name.startswith("call_") or name in GENOTYPE_FIELD_NAMES:
                 continue
+            if _is_mask_or_fill(name):
+                continue
             arr = root[name]
             dims = arr.attrs["_ARRAY_DIMENSIONS"]
             if len(dims) != 3 or dims[0] != "variants" or dims[1] != "samples":
@@ -233,6 +241,30 @@ class CheckFormatFields(ZarrCheck):
                     f"FORMAT field '{name}' has invalid dtype kind '{arr.dtype.kind}'. "
                     "Must be one of: 'b' (bool), 'i' (int), 'f' (float), 'T' (string)",
                 )
+
+
+class CheckMaskAndFillArrays(ZarrCheck):
+    def check(self, root):
+        array_names = set(root.array_keys())
+        for name in array_names:
+            for suffix, label in [("_mask", "Mask"), ("_fill", "Fill")]:
+                if not name.endswith(suffix):
+                    continue
+                parent_name = name[: -len(suffix)]
+                if parent_name not in array_names:
+                    continue
+                arr = root[name]
+                parent_arr = root[parent_name]
+                if arr.dtype.kind != "b":
+                    yield Failure(
+                        f"{label} array '{name}' must have dtype kind 'b' (bool), "
+                        f"but was '{arr.dtype.kind}'",
+                    )
+                if arr.shape != parent_arr.shape:
+                    yield Failure(
+                        f"{label} array '{name}' must have the same shape as "
+                        f"'{parent_name}' {parent_arr.shape}, but was {arr.shape}",
+                    )
 
 
 def validate(path):
@@ -279,6 +311,7 @@ def validate(path):
         ),
         CheckInfoFields(),
         CheckFormatFields(),
+        CheckMaskAndFillArrays(),
     ]
 
     for check in checks:
