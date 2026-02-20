@@ -86,7 +86,7 @@ class CheckDimensionNamesLenMatchesArrayDimensionsLen:
         mismatched_names = []
         for name in root.array_keys():
             arr = root[name]
-            dims = arr.attrs["_ARRAY_DIMENSIONS"]
+            dims = _dimension_names(arr)
             all_array_dim_counts[name] = {
                 "dimension_names": len(dims),
                 "ndim": arr.ndim,
@@ -110,7 +110,7 @@ class CheckDimensionNamesHaveConsistentSizes:
         inconsistent_dimension_names = set()
         for name in root.array_keys():
             arr = root[name]
-            dims = arr.attrs["_ARRAY_DIMENSIONS"]
+            dims = _dimension_names(arr)
             all_array_dimensions[name] = dict(zip(dims, arr.shape))
             for dim, size in zip(dims, arr.shape):
                 if dim in dimension_name_to_size:
@@ -154,7 +154,7 @@ class CheckArraySpec:
             return
         arr = root[self.name]
 
-        dims = arr.attrs["_ARRAY_DIMENSIONS"]
+        dims = _dimension_names(arr)
         if dims != self.dimension_names:
             yield Failure(
                 f"Incorrect dimension names for '{self.name}': "
@@ -183,6 +183,10 @@ VALID_FIELD_DTYPE_KINDS_MESSAGE = (
 )
 
 
+def _dimension_names(arr):
+    return arr.attrs["_ARRAY_DIMENSIONS"]
+
+
 def _is_mask_or_fill(name):
     return name.endswith("_mask") or name.endswith("_fill")
 
@@ -195,7 +199,7 @@ class CheckInfoFields:
             if _is_mask_or_fill(name):
                 continue
             arr = root[name]
-            dims = arr.attrs["_ARRAY_DIMENSIONS"]
+            dims = _dimension_names(arr)
             if len(dims) != 2 or dims[0] != "variants":
                 yield Failure(
                     f"INFO field '{name}' must be 2-dimensional with dimensions "
@@ -216,7 +220,7 @@ class CheckFormatFields:
             if _is_mask_or_fill(name):
                 continue
             arr = root[name]
-            dims = arr.attrs["_ARRAY_DIMENSIONS"]
+            dims = _dimension_names(arr)
             if len(dims) != 3 or dims[0] != "variants" or dims[1] != "samples":
                 yield Failure(
                     f"FORMAT field '{name}' must be 3-dimensional with dimensions "
