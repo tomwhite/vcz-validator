@@ -192,6 +192,20 @@ class CheckArraySpec(ZarrCheck):
                 )
 
 
+class CheckInfoFieldDimensions(ZarrCheck):
+    def check(self, root):
+        for name in root.array_keys():
+            if not name.startswith("variant_") or name in REQUIRED_VARIABLE_NAMES:
+                continue
+            arr = root[name]
+            dims = arr.attrs["_ARRAY_DIMENSIONS"]
+            if len(dims) != 2 or dims[0] != "variants":
+                yield Failure(
+                    f"INFO field '{name}' must be 2-dimensional with dimensions "
+                    f"['variants', ...], but had dimensions {dims}",
+                )
+
+
 def validate(path):
     path = Path(path)
     failures = []
@@ -228,6 +242,7 @@ def validate(path):
         CheckArraySpec("filter_id", ["filters"], "T"),
         CheckArraySpec("filter_description", ["filters"], "T"),
         CheckArraySpec("sample_id", ["samples"], "T"),
+        CheckInfoFieldDimensions(),
     ]
 
     for check in checks:

@@ -222,6 +222,18 @@ def test_failure__optional_field_dtype_kind_incorrect(example_vcz_path):
     )
 
 
+def test_failure__info_field_wrong_number_of_dimensions(example_vcz_path):
+    root = zarr.open(example_vcz_path, mode="r+")
+    arr = root.create_array("variant_AD", data=np.array([1, 2], dtype=np.int32))
+    arr.attrs["_ARRAY_DIMENSIONS"] = ["variants"]
+
+    expect_validate_failures(
+        example_vcz_path,
+        "INFO field 'variant_AD' must be 2-dimensional with dimensions "
+        "['variants', ...], but had dimensions ['variants']",
+    )
+
+
 @pytest.mark.parametrize("path_type", [Path, str])
 def test_success(example_vcz_path, path_type):
     failures = validate(path_type(example_vcz_path))
