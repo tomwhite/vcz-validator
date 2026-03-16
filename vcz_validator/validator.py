@@ -138,7 +138,7 @@ class CheckAllArraysHaveDimensionNames:
         if len(missing_array_names) > 0:
             yield Failure(
                 "Arrays must have dimension names, but they were missing for: "
-                f"{",".join(missing_array_names)}",
+                f"{','.join(missing_array_names)}",
                 stop=True,
             )
 
@@ -185,7 +185,7 @@ class CheckDimensionNamesHaveConsistentSizes:
         if len(inconsistent_dimension_names) > 0:
             yield Failure(
                 "Dimension names must have consistent sizes, but they were "
-                f"inconsistent for: {",".join(inconsistent_dimension_names)}.\n"
+                f"inconsistent for: {','.join(inconsistent_dimension_names)}.\n"
                 "The array dimensions and sizes were:\n"
                 f"{pp.pformat(all_array_dimensions)}",
                 stop=True,
@@ -200,7 +200,7 @@ class CheckRequiredFieldsArePresent:
         if len(missing_required_field_names) > 0:
             missing_required_field_names = sorted(missing_required_field_names)
             yield Failure(
-                "Missing required fields: " f"{",".join(missing_required_field_names)}",
+                "Missing required fields: " f"{','.join(missing_required_field_names)}",
                 stop=True,
             )
 
